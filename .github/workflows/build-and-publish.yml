@@ -19,26 +19,48 @@ jobs:
       devcontainer_dirs: ${{ steps.scan.outputs.devcontainer_dirs }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0 # Full history, so we can diff across every commit in the push
 
       - id: scan
+        env:
+          BEFORE_SHA: ${{ github.event.before }}
+          AFTER_SHA: ${{ github.event.after }}
         run: |
+          # Diff over the whole push (all commits between before and after), not just the latest commit.
+          # Falls back to the full file list for a new branch (before is all-zeros) or a force-push
+          # that rewrote history we don't have (before isn't reachable).
+          if [[ "$BEFORE_SHA" =~ ^0*$ ]] || ! git cat-file -e "$BEFORE_SHA" 2>/dev/null; then
+            CHANGED_FILES=$(git ls-files)
+          else
+            CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA")
+          fi
+
           image_dirs=()
           devcontainer_dirs=()
+
           for d in */; do
             d="${d%/}"
             [[ "$d" == .* ]] && continue
-            if [[ -f "$d/.devcontainer/devcontainer.json" ]]; then
-              devcontainer_dirs+=("$d")
-            elif [[ -f "$d/Dockerfile" ]]; then
-              image_dirs+=("$d")
+
+            # Check if files inside this directory were modified
+            if echo "$CHANGED_FILES" | grep -q "^$d/"; then
+              if [[ -f "$d/.devcontainer/devcontainer.json" ]]; then
+                devcontainer_dirs+=("$d")
+              elif [[ -f "$d/Dockerfile" ]]; then
+                image_dirs+=("$d")
+              fi
             fi
           done
+
+          # Format arrays as JSON
           image_json=$(printf '%s\n' "${image_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
           devcontainer_json=$(printf '%s\n' "${devcontainer_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
+
           echo "image_dirs=$image_json" >> "$GITHUB_OUTPUT"
           echo "devcontainer_dirs=$devcontainer_json" >> "$GITHUB_OUTPUT"
-          echo "Image repos: $image_json"
-          echo "Devcontainer repos: $devcontainer_json"
+          echo "Image repos to build: $image_json"
+          echo "Devcontainer repos to build: $devcontainer_json"
 
   build-images:
     needs: discover
