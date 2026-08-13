@@ -1,0 +1,99 @@
+name: Build and publish images
+
+on:
+  push:
+    branches: [master]
+    paths-ignore:
+      - "**.md"
+      - ".claude/**"
+
+permissions:
+  contents: read
+  packages: write
+
+jobs:
+  discover:
+    runs-on: ubuntu-latest
+    outputs:
+      image_dirs: ${{ steps.scan.outputs.image_dirs }}
+      devcontainer_dirs: ${{ steps.scan.outputs.devcontainer_dirs }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - id: scan
+        run: |
+          image_dirs=()
+          devcontainer_dirs=()
+          for d in */; do
+            d="${d%/}"
+            [[ "$d" == .* ]] && continue
+            if [[ -f "$d/.devcontainer/devcontainer.json" ]]; then
+              devcontainer_dirs+=("$d")
+            elif [[ -f "$d/Dockerfile" ]]; then
+              image_dirs+=("$d")
+            fi
+          done
+          image_json=$(printf '%s\n' "${image_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
+          devcontainer_json=$(printf '%s\n' "${devcontainer_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
+          echo "image_dirs=$image_json" >> "$GITHUB_OUTPUT"
+          echo "devcontainer_dirs=$devcontainer_json" >> "$GITHUB_OUTPUT"
+          echo "Image repos: $image_json"
+          echo "Devcontainer repos: $devcontainer_json"
+
+  build-images:
+    needs: discover
+    if: needs.discover.outputs.image_dirs != '[]'
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        folder: ${{ fromJson(needs.discover.outputs.image_dirs) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/setup-buildx-action@v3
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - id: meta
+        uses: docker/metadata-action@v5
+        with:
+          images: ghcr.io/${{ github.repository_owner }}/${{ matrix.folder }}
+          tags: |
+            type=raw,value=latest
+            type=sha
+
+      - uses: docker/build-push-action@v6
+        with:
+          context: ${{ matrix.folder }}
+          push: true
+          tags: ${{ steps.meta.outputs.tags }}
+          labels: ${{ steps.meta.outputs.labels }}
+          cache-from: type=gha,scope=${{ matrix.folder }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.folder }}
+
+  build-devcontainers:
+    needs: [discover, build-images]
+    if: always() && needs.discover.outputs.devcontainer_dirs != '[]' && !failure() && !cancelled()
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        folder: ${{ fromJson(needs.discover.outputs.devcontainer_dirs) }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push devcontainer image
+        uses: devcontainers/ci@v0.3
+        with:
+          subFolder: ${{ matrix.folder }}
+          imageName: ghcr.io/${{ github.repository_owner }}/${{ matrix.folder }}
+          push: always
