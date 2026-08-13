@@ -19,39 +19,26 @@ jobs:
       devcontainer_dirs: ${{ steps.scan.outputs.devcontainer_dirs }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 2 # Needed to compare HEAD~1 with HEAD
 
       - id: scan
         run: |
-          # Get list of files changed in the latest commit
-          CHANGED_FILES=$(git diff --name-only HEAD~1 HEAD 2>/dev/null || git ls-files)
-
           image_dirs=()
           devcontainer_dirs=()
-
           for d in */; do
             d="${d%/}"
             [[ "$d" == .* ]] && continue
-
-            # Check if files inside this directory were modified
-            if echo "$CHANGED_FILES" | grep -q "^$d/"; then
-              if [[ -f "$d/.devcontainer/devcontainer.json" ]]; then
-                devcontainer_dirs+=("$d")
-              elif [[ -f "$d/Dockerfile" ]]; then
-                image_dirs+=("$d")
-              fi
+            if [[ -f "$d/.devcontainer/devcontainer.json" ]]; then
+              devcontainer_dirs+=("$d")
+            elif [[ -f "$d/Dockerfile" ]]; then
+              image_dirs+=("$d")
             fi
           done
-
-          # Format arrays as JSON
           image_json=$(printf '%s\n' "${image_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
           devcontainer_json=$(printf '%s\n' "${devcontainer_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
-
           echo "image_dirs=$image_json" >> "$GITHUB_OUTPUT"
           echo "devcontainer_dirs=$devcontainer_json" >> "$GITHUB_OUTPUT"
-          echo "Image repos to build: $image_json"
-          echo "Devcontainer repos to build: $devcontainer_json"
+          echo "Image repos: $image_json"
+          echo "Devcontainer repos: $devcontainer_json"
 
   build-images:
     needs: discover
