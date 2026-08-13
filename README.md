@@ -1,4 +1,4 @@
-# devcontainers
+# Devcontainer/Tools Ready Images
 
 Prebuilt, published devcontainer / workspace images — built so you don't have to wait on `dnf install` and
 `git clone` every time a container starts.
@@ -16,7 +16,7 @@ Every push to `main` builds whatever image directories changed and publishes the
 
 ## Using an image
 
-### amzn-linux, in VS Code / any devcontainer-CLI tool
+### Devcontainers
 
 Point your project's `.devcontainer/devcontainer.json` at the published image instead of building locally:
 
@@ -32,12 +32,11 @@ Or pull/run it directly:
 docker run -it --rm ghcr.io/hfr1994/amzn-linux:latest
 ```
 
-### podman_devcontainer, as a Coder/Kubernetes workspace image
+### Containers
 
-This image expects to run as its own container/pod with `/dev/fuse` available (needed by fuse-overlayfs) and is
-meant to be used as the workspace image in a Coder template, not opened directly by VS Code. Its entrypoint
-starts a rootless Podman API socket, waits for it to come up, exports `DOCKER_HOST` to point at it, and then
-hands off to whatever `CMD`/agent bootstrap the template supplies.
+Just do a normal docker run:
+
+#### Podman_devcontainer uses fuse
 
 ```bash
 docker run -it --rm --device /dev/fuse ghcr.io/hfr1994/podman_devcontainer:latest
