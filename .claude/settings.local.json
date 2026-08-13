@@ -1,0 +1,8 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(git -C /home/frhec/devcontainers/podman_devcontainer remote -v)",
+      "Bash(git -C /home/frhec/devcontainers/podman_devcontainer log --oneline -n 5)"
+    ]
+  }
+}
