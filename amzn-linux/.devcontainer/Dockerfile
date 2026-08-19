@@ -14,7 +14,7 @@ RUN dnf clean all && \
     dnf upgrade -y --refresh --releasever=latest && \
     dnf install -y --nogpgcheck libsecret sudo && \
     dnf groupinstall -y "Development Tools" && \
-    dnf install -y tar zip openssl yum-utils shadow-utils openssh-clients git wget util-linux-user unzip openssl-devel cabextract xorg-x11-font-utils fontconfig && \
+    dnf install -y tar zip openssl ca-certificates yum-utils shadow-utils openssh-clients git wget util-linux-user unzip openssl-devel cabextract xorg-x11-font-utils fontconfig && \
     dnf config-manager --add-repo https://rpm.releases.hashicorp.com/AmazonLinux/hashicorp.repo && \
     dnf install -y terraform  && \
     groupadd --gid $USER_GID $USERNAME && \
@@ -22,6 +22,16 @@ RUN dnf clean all && \
     echo $USERNAME ALL=\(root\) NOPASSWD:ALL > /etc/sudoers.d/$USERNAME && \
     chmod 0440 /etc/sudoers.d/$USERNAME && \
     rm -rf /var/cache/dnf/* && dnf clean all;
+
+# Mount CA secret conditionally: If the secret exists and is non-empty, copy and update trust
+RUN --mount=type=secret,id=MY_CA,dst=/tmp/myCA.pem \
+    if [ -s /tmp/myCA.pem ]; then \
+        echo "Custom CA detected. Installing into system trust store..."; \
+        cp /tmp/myCA.pem /etc/pki/ca-trust/source/anchors/myCA.pem && \
+        update-ca-trust; \
+    else \
+        echo "No additional CA certificates provided, set it with CUSTOM_CA_PEM inside Github Secrets."; \
+    fi    
 
 RUN curl -fsSL \
         https://github.com/typst/typst/releases/download/v${TYPST_VERSION}/typst-x86_64-unknown-linux-musl.tar.xz \

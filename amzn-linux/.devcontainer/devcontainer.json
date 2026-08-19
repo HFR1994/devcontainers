@@ -1,6 +1,9 @@
 {
   "build": {
-    "dockerfile": "Dockerfile"
+    "dockerfile": "Dockerfile",
+    "options": [
+      "--secret", "id=MY_CA,src=/tmp/ca_secret.pem"
+    ]
   },
   "name": "amzn-linux",
   "features": {
