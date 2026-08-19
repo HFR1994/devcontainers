@@ -54,3 +54,4 @@ RUN P10K_DIR="/home/${USERNAME}/.oh-my-zsh/custom/themes/powerlevel10k" && \
 COPY extras/.zshrc /etc/skel/.zshrc
 COPY extras/.p10k.zsh /home/${USERNAME}/.p10k.zsh
 RUN chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.p10k.zsh
+
