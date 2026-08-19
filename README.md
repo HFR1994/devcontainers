@@ -16,6 +16,18 @@ Every push to `main` builds whatever image directories changed and publishes the
 
 ## Using an image
 
+All images are build using Github Actions. This images are meant to be used on local secure environments so you can add your own CA Certs shipped into the images (optional).
+
+For that set the following actions:
+
+- Go to your GitHub repository -> Settings -> Secrets and variables -> Actions.
+
+- Click New repository secret.
+
+- Set Name to CUSTOM_CA_PEM.
+
+- Set Value to the entire raw content of your PEM file (including -----BEGIN CERTIFICATE----- and -----END CERTIFICATE-----).
+
 ### Devcontainers
 
 Point your project's `.devcontainer/devcontainer.json` at the published image instead of building locally:
