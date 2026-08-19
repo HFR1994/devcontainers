@@ -3,9 +3,19 @@ FROM quay.io/podman/stable:latest
 RUN dnf clean all && \
     dnf update -y && \
     dnf install -y --nogpgcheck libsecret sudo && \
-    dnf install -y tar zip openssl git curl free podman-docker openssh-clients node shadow-utils fuse3 fuse-overlayfs && \
+    dnf install -y tar zip openssl ca-certificates git curl free podman-docker openssh-clients node shadow-utils fuse3 fuse-overlayfs && \
     rm -rf /var/cache/dnf/* && dnf clean all && \
     npm install -g @devcontainers/cli
+
+# Mount CA secret conditionally: If the secret exists and is non-empty, copy and update trust
+RUN --mount=type=secret,id=MY_CA,dst=/tmp/myCA.pem \
+    if [ -s /tmp/myCA.pem ]; then \
+        echo "Custom CA detected. Installing into system trust store..."; \
+        cp /tmp/myCA.pem /etc/pki/ca-trust/source/anchors/myCA.pem && \
+        update-ca-trust; \
+    else \
+        echo "No additional CA certificates provided, set it with CUSTOM_CA_PEM inside Github Secrets."; \
+    fi    
 
 ARG USERNAME=coder
 ARG USER_UID=1001
