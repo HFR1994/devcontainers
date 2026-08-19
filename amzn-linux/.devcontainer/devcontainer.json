@@ -6,6 +6,10 @@
     ]
   },
   "name": "amzn-linux",
+  "remoteUser": "vscode",
+  "remoteEnv": {
+     "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
+  },
   "features": {
     "ghcr.io/devcontainers/features/common-utils": {
       "installZsh": true,
