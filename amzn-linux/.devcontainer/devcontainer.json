@@ -26,6 +26,7 @@
     "ghcr.io/hfr1994/features/aws-cli:1": {},
     "ghcr.io/devcontainers-extra/features/zsh-plugins:0": {
       "plugins": "zsh-autosuggestions zsh-syntax-highlighting",
+      "username": "vscode",
       "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions.git https://github.com/zsh-users/zsh-syntax-highlighting.git"
     }
   }

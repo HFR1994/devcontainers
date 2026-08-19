@@ -38,21 +38,3 @@ RUN curl -fsSL \
     | tar -xJ \
     && mv typst-x86_64-unknown-linux-musl/typst /usr/local/bin/typst \
     && rm -rf typst-x86_64-unknown-linux-musl
-
-# Powerline fonts
-RUN git clone https://github.com/powerline/fonts.git /tmp/fonts && \
-    /tmp/fonts/install.sh && \
-    rm -rf /tmp/fonts
- 
-# Powerlevel10k theme
-RUN P10K_DIR="/home/${USERNAME}/.oh-my-zsh/custom/themes/powerlevel10k" && \
-    mkdir -p "$P10K_DIR" && \ 
-    git clone --depth=1 https://github.com/romkatv/powerlevel10k.git "$P10K_DIR" && \
-    chown -R ${USERNAME}:${USERNAME} "$P10K_DIR"
- 
-# Copy custom Zsh configurations
-COPY extras/.zshrc /etc/skel/.zshrc
-COPY extras/.p10k.zsh /home/${USERNAME}/.p10k.zsh
-RUN chown ${USERNAME}:${USERNAME} /home/${USERNAME}/.p10k.zsh
-
-USER ${USERNAME}
