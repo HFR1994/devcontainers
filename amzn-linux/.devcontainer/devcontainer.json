@@ -21,6 +21,7 @@
       "version": "24"
     },
     "ghcr.io/devcontainers/features/python:1": {
+      "toolsToInstall": "flake8,autopep8,black,yapf,mypy,pydocstyle,pycodestyle,bandit,pipenv,virtualenv,pytest,pylint,uv",
       "version": "3.14"
     },
     "ghcr.io/hfr1994/features/aws-cli:1": {},
