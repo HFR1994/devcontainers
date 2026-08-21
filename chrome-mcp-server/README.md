@@ -6,7 +6,7 @@ Run [chrome-devtools-mcp](https://github.com/ChromeDevTools/chrome-devtools-mcp)
 
 ## How it works
 
-`chrome-devtools-mcp` is a Node.js MCP server that uses Puppeteer to either launch a new Chrome instance or attach to an existing one, then exposes DevTools capabilities (network inspection, performance tracing, console, accessibility snapshots, input automation, etc.) as MCP tools. It communicates with MCP clients over **stdio**, not a network port.
+`chrome-devtools-mcp` is a Node.js MCP server that uses Puppeteer to either launch a new Chrome instance or attach to an existing one, then exposes DevTools capabilities (network inspection, performance tracing, console, accessibility snapshots, input automation, etc.) as MCP tools. It communicates with MCP clients over **stdio**, not a network port. However, if you wrap it with [`mcp-proxy`](https://www.npmjs.com/package/mcp-proxy) it spawns a `chrome-devtools-mcp` as a stdio subprocess and re-exposes it as a `streamablehttp` endpoint.
 
 Because containers don't grant the kernel privileges (`CAP_SYS_ADMIN`) Chrome's sandbox needs by default, and have no display, the container build launches Chrome **headless** with **`--no-sandbox`**.
 
@@ -14,37 +14,6 @@ Because containers don't grant the kernel privileges (`CAP_SYS_ADMIN`) Chrome's 
 
 - Node.js `^20.19.0`, `^22.12.0`, or `>=23`
 - Docker
-
-## Dockerfile
-
-```dockerfile
-FROM node:22-slim
-
-# Chrome's runtime deps (standard headless-Chrome-on-Debian list)
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 \
-    libatk1.0-0 libatspi2.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 \
-    libglib2.0-0 libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcomposite1 \
-    libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 xdg-utils \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
-
-WORKDIR /app
-
-# Install the MCP server
-RUN npm install -g chrome-devtools-mcp@latest
-
-# Download a Chrome binary via Puppeteer's installer
-RUN npx --yes puppeteer browsers install chrome
-
-# Run as non-root (Chrome refuses --no-sandbox as root without extra flags)
-RUN useradd -m mcpuser
-USER mcpuser
-
-ENTRYPOINT ["chrome-devtools-mcp", "--headless=true", "--isolated=true", \
-  "--chromeArg=--no-sandbox", "--chromeArg=--disable-setuid-sandbox", \
-  "--chromeArg=--disable-dev-shm-usage"]
-```
 
 ## Build
 
@@ -107,7 +76,7 @@ This avoids sandbox flag tradeoffs entirely, at the cost of managing Chrome's li
 If your container orchestrator permits it, you can grant the capability Chrome's sandbox needs instead of disabling it:
 
 ```bash
-docker run -i --rm --init --cap-add=SYS_ADMIN chrome-devtools-mcp
+docker run --rm --init -p 8080:8080 --shm-size=1gb chrome-devtools-mcp-http
 ```
 
 Then drop `--chromeArg=--no-sandbox --chromeArg=--disable-setuid-sandbox` from the entrypoint.

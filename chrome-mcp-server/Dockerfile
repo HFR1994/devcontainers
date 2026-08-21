@@ -11,8 +11,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 
 WORKDIR /app
 
-# Install the MCP server
-RUN npm install -g chrome-devtools-mcp@latest
+# Install the MCP server and the HTTP proxy
+RUN npm install -g chrome-devtools-mcp@latest mcp-proxy
 
 # Download a Chrome binary via Puppeteer's installer
 RUN npx --yes puppeteer browsers install chrome
@@ -21,6 +21,9 @@ RUN npx --yes puppeteer browsers install chrome
 RUN useradd -m mcpuser
 USER mcpuser
 
-ENTRYPOINT ["chrome-devtools-mcp", "--headless=true", "--isolated=true", \
+EXPOSE 8080
+
+ENTRYPOINT ["mcp-proxy", "--transport", "streamablehttp", "--port", "8080", "--", \
+  "chrome-devtools-mcp", "--headless=true", "--isolated=true", \
   "--chromeArg=--no-sandbox", "--chromeArg=--disable-setuid-sandbox", \
   "--chromeArg=--disable-dev-shm-usage"]
