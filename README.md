@@ -1,7 +1,6 @@
 # Devcontainer/Tools Ready Images
 
-Prebuilt, published devcontainer / workspace images — built so you don't have to wait on `dnf install` and
-`git clone` every time a container starts.
+Prebuilt, published devcontainer / workspace images — built so you don't have to wait for long built times, or contenerize ready to go environments.
 
 Every push to `main` builds whatever image directories changed and publishes them to GHCR under
 [ghcr.io/hfr1994](https://github.com/HFR1994?tab=packages), tagged `latest`, an auto-incremented SemVer
@@ -12,7 +11,10 @@ Every push to `main` builds whatever image directories changed and publishes the
 | Folder | What it is | Published as |
 | --- | --- | --- |
 | [amzn-linux](amzn-linux) | Amazon Linux 2023 devcontainer aimed to provision AWS Infrastructure with Terraform | `ghcr.io/hfr1994/amzn-linux` |
-| [podman_devcontainer](podman_devcontainer) | Rootless Podman-in-Podman image (DinD) to build/run devcontainers | `ghcr.io/hfr1994/podman_devcontainer` |
+| [podman_devcontainer](podman_devcontainer) | Rootless Podman-in-Podman image (DinD) to build/run devcontainers | 
+`ghcr.io/hfr1994/podman_devcontainer` |
+| [chrome-mcp-server](podman_devcontainer) | Build based on Chrome Dev Tools MCP, just a container way of exposing the tool | 
+`ghcr.io/hfr1994/chrome-mcp-server` |
 
 ## Using an image
 
@@ -52,6 +54,12 @@ Just do a normal docker run:
 
 ```bash
 docker run -it --rm --device /dev/fuse ghcr.io/hfr1994/podman_devcontainer:latest
+```
+
+#### Chrome Dev Tool needs extra priviledges
+
+```bash
+docker run -i --rm --init --cap-add=SYS_ADMIN chrome-devtools-mcp
 ```
 
 ## How the build works
