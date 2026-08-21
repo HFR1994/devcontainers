@@ -1,35 +1,22 @@
 FROM node:22-slim
 
-# Chrome's runtime deps (standard headless-Chrome-on-Debian list)
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    ca-certificates fonts-liberation libasound2 libatk-bridge2.0-0 \
-    libatk1.0-0 libatspi2.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 \
-    libglib2.0-0 libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcomposite1 \
-    libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 xdg-utils \
-    wget unzip && rm -rf /var/lib/apt/lists/*
+    ca-certificates curl gnupg \
+    && curl -fsSL https://dl-ssl.google.com/linux/linux_signing_key.pub | gpg --dearmor -o /usr/share/keyrings/google-chrome.gpg \
+    && echo "deb [arch=amd64 signed-by=/usr/share/keyrings/google-chrome.gpg] http://dl.google.com/linux/chrome/deb/ stable main" > /etc/apt/sources.list.d/google-chrome.list \
+    && apt-get update && apt-get install -y --no-install-recommends google-chrome-stable \
+    && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
-# Install the MCP server and the HTTP proxy
-RUN npm install -g chrome-devtools-mcp@latest mcp-proxy
+COPY package.json src/proxy.mjs /app/
+RUN npm install --omit=dev
 
-# Download a Chrome binary via Puppeteer's installer
-RUN npx --yes puppeteer browsers clear \
-    && for i in 1 2 3 4 5; do \
-         npx --yes puppeteer browsers install chrome && exit 0; \
-         echo "Chrome install attempt $i failed, retrying..."; \
-         rm -rf /root/.cache/puppeteer; \
-         sleep 5; \
-       done; \
-    echo "Chrome install failed after 5 attempts" && exit 1
+ENV PATH="/app/node_modules/.bin:${PATH}"
 
-# Run as non-root (Chrome refuses --no-sandbox as root without extra flags)
-RUN useradd -m mcpuser
+RUN useradd -m mcpuser && chown -R mcpuser /app
 USER mcpuser
 
 EXPOSE 8080
 
-ENTRYPOINT ["mcp-proxy", "--transport", "streamablehttp", "--port", "8080", "--", \
-  "chrome-devtools-mcp", "--headless=true", "--isolated=true", \
-  "--chromeArg=--no-sandbox", "--chromeArg=--disable-setuid-sandbox", \
-  "--chromeArg=--disable-dev-shm-usage"]
+ENTRYPOINT ["node", "/app/proxy.mjs"]
