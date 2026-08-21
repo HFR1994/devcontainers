@@ -6,8 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     libatk1.0-0 libatspi2.0-0 libcups2 libdbus-1-3 libdrm2 libgbm1 \
     libglib2.0-0 libnspr4 libnss3 libpango-1.0-0 libx11-6 libxcomposite1 \
     libxdamage1 libxext6 libxfixes3 libxkbcommon0 libxrandr2 xdg-utils \
-    wget \
-    && rm -rf /var/lib/apt/lists/*
+    wget unzip && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app
 
@@ -15,7 +14,14 @@ WORKDIR /app
 RUN npm install -g chrome-devtools-mcp@latest mcp-proxy
 
 # Download a Chrome binary via Puppeteer's installer
-RUN npx --yes puppeteer browsers install chrome
+RUN npx --yes puppeteer browsers clear \
+    && for i in 1 2 3 4 5; do \
+         npx --yes puppeteer browsers install chrome && exit 0; \
+         echo "Chrome install attempt $i failed, retrying..."; \
+         rm -rf /root/.cache/puppeteer; \
+         sleep 5; \
+       done; \
+    echo "Chrome install failed after 5 attempts" && exit 1
 
 # Run as non-root (Chrome refuses --no-sandbox as root without extra flags)
 RUN useradd -m mcpuser
