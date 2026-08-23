@@ -2,7 +2,7 @@
 ARG VARIANT=2023
 FROM public.ecr.aws/amazonlinux/amazonlinux:${VARIANT}
 
-ARG TYPST=0.14.2
+ARG TYPST=0.15.1
 ENV TYPST_VERSION=${TYPST}
 
 ARG USERNAME=vscode
