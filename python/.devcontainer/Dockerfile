@@ -31,13 +31,7 @@ RUN apt-get update && \
         xfonts-utils \
         fontconfig \
         gnupg \
-        lsb-release \
-        software-properties-common && \
-    # Add HashiCorp repository for Terraform
-    wget -O- https://apt.releases.hashicorp.com/gpg | gpg --dearmor -o /usr/share/keyrings/hashicorp-archive-keyring.gpg && \
-    echo "deb [signed-by=/usr/share/keyrings/hashicorp-archive-keyring.gpg] https://apt.releases.hashicorp.com $(lsb_release -cs) main" | tee /etc/apt/sources.list.d/hashicorp.list && \
-    apt-get update && \
-    DEBIAN_FRONTEND=noninteractive apt-get install -y terraform && \
+        lsb-release && \ 
     # Setup User
     groupadd --gid $USER_GID $USERNAME && \
     useradd --uid $USER_UID --gid $USER_GID -m -s /bin/bash $USERNAME && \
