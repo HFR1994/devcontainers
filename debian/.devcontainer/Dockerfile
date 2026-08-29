@@ -1,5 +1,5 @@
 ARG VARIANT=trixie
-FROM mcr.microsoft.com/devcontainers/base:debian:${VARIANT}
+FROM mcr.microsoft.com/devcontainers/base:${VARIANT}
 
 ARG TYPST=0.15.1
 ENV TYPST_VERSION=${TYPST}
