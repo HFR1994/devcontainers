@@ -19,7 +19,10 @@
       "installZsh": true,
       "installOhMyZsh": true,
       "installOhMyZshConfig": true,
-      "configureZshAsDefaultShell": true
+      "configureZshAsDefaultShell": true,
+      "username": "vscode",
+      "userUid": "1000",
+      "userGid": "1000"
     },
     "ghcr.io/devcontainers-extra/features/zsh-plugins:0": {
       "plugins": "zsh-autosuggestions zsh-syntax-highlighting",
