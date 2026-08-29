@@ -42,7 +42,7 @@ RUN --mount=type=secret,id=MY_CA,dst=/tmp/myCA.pem \
     if [ -s /tmp/myCA.pem ]; then \
         echo "Custom CA detected. Installing into system trust store..."; \
         cp /tmp/myCA.pem /usr/local/share/ca-certificates/myCA.pem && \
-        update-ca-trust; \
+        update-ca-certificates; \
     else \
         echo "No additional CA certificates provided, set it with CUSTOM_CA_PEM inside Github Secrets."; \
     fi    
@@ -54,3 +54,5 @@ RUN curl -fsSL \
     && rm -rf typst-x86_64-unknown-linux-musl
 
 RUN curl -L https://coder.com/install.sh | sh
+
+USER vscode
