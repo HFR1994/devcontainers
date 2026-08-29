@@ -54,5 +54,3 @@ RUN curl -fsSL \
     && rm -rf typst-x86_64-unknown-linux-musl
 
 RUN curl -L https://coder.com/install.sh | sh
-
-USER vscode

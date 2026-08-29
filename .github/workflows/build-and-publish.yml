@@ -137,6 +137,7 @@ jobs:
     if: always() && needs.discover.outputs.devcontainer_dirs != '[]' && needs.discover.outputs.devcontainer_dirs != '' && !failure() && !cancelled()
     runs-on: ubuntu-latest
     strategy:
+      max-parallel: 1
       matrix:
         folder: ${{ fromJson(needs.discover.outputs.devcontainer_dirs) }}
     steps:
