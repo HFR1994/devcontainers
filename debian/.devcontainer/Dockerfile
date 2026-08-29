@@ -41,7 +41,7 @@ RUN echo "deb http://deb.debian.org/debian trixie main contrib" > /etc/apt/sourc
 RUN --mount=type=secret,id=MY_CA,dst=/tmp/myCA.pem \
     if [ -s /tmp/myCA.pem ]; then \
         echo "Custom CA detected. Installing into system trust store..."; \
-        cp /tmp/myCA.pem /usr/local/share/ca-certificates/myCA.pem && \
+        cp /tmp/myCA.pem /usr/local/share/ca-certificates/myCA.crt && \
         update-ca-certificates; \
     else \
         echo "No additional CA certificates provided, set it with CUSTOM_CA_PEM inside Github Secrets."; \
