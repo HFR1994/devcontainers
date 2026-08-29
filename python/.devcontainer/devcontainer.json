@@ -1,40 +1,16 @@
 {
   // For quick reference: https://containers.dev/implementors/json_reference/
   "name": "Python",
-  "build": {
-    "dockerfile": "./Dockerfile",
-    "options": [
-      "--secret", "id=MY_CA,src=/tmp/ca_secret.pem"
-    ]
-  },
+  "image": "ghcr.io/hfr1994/debian",
   "remoteUser": "vscode",
   "remoteEnv": {
      "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
   },
-
-  // 4. Features to add to the Dev Container. More info: https://containers.dev/implementors/features.
   "features": {
-    // ZSH without OMZ
-    "ghcr.io/devcontainers/features/common-utils:2": {
-      "installZsh": true,
-      "installOhMyZsh": true,
-      "installOhMyZshConfig": true,
-      "configureZshAsDefaultShell": true
-    },
-    "ghcr.io/devcontainers-extra/features/zsh-plugins:0": {
-      "plugins": "zsh-autosuggestions zsh-syntax-highlighting",
-      "username": "vscode",
-      "omzPlugins": "https://github.com/zsh-users/zsh-autosuggestions.git https://github.com/zsh-users/zsh-syntax-highlighting.git"
-    },
     // Python with uv, Ruff, Mypy, MonkeyType and Bandit, installed using pipx
     "ghcr.io/devcontainers/features/python:1": {
       "installTools": "true",
       "toolsToInstall": "uv,ruff,mypy,MonkeyType,bandit"
-    },
-    // git
-    "ghcr.io/devcontainers/features/git:1": {
-      "version": "os-provided",
-      "ppa": "false"
     }
   }
 }

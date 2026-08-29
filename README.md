@@ -11,10 +11,8 @@ Every push to `main` builds whatever image directories changed and publishes the
 | Folder | What it is | Published as |
 | --- | --- | --- |
 | [amzn-linux](amzn-linux) | Amazon Linux 2023 devcontainer aimed to provision AWS Infrastructure with Terraform | `ghcr.io/hfr1994/amzn-linux` |
-| [podman_devcontainer](podman_devcontainer) | Rootless Podman-in-Podman image (DinD) to build/run devcontainers | 
-`ghcr.io/hfr1994/podman_devcontainer` |
-| [chrome-mcp-server](podman_devcontainer) | Build based on Chrome Dev Tools MCP, just a container way of exposing the tool | 
-`ghcr.io/hfr1994/chrome-mcp-server` |
+| [podman_devcontainer](podman_devcontainer) | Rootless Podman-in-Podman image (DinD) to build/run devcontainers | `ghcr.io/hfr1994/podman_devcontainer` |
+| [chrome-mcp-server](podman_devcontainer) | Build based on Chrome Dev Tools MCP, just a container way of exposing the tool | `ghcr.io/hfr1994/chrome-mcp-server` |
 
 ## Using an image
 
