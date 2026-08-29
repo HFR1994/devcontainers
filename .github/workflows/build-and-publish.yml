@@ -53,6 +53,15 @@ jobs:
             fi
           done
 
+          # Sort devcontainer_dirs so 'debian' is always first if present
+          if [[ " ${devcontainer_dirs[*]} " =~ " debian " ]]; then
+            sorted_dirs=("debian")
+            for d in $(printf '%s\n' "${devcontainer_dirs[@]}" | sort); do
+              [[ "$d" != "debian" ]] && sorted_dirs+=("$d")
+            done
+            devcontainer_dirs=("${sorted_dirs[@]}")
+          fi
+
           # Format arrays as JSON
           image_json=$(printf '%s\n' "${image_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
           devcontainer_json=$(printf '%s\n' "${devcontainer_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
