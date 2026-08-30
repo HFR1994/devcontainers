@@ -1,7 +1,7 @@
 {
   // For quick reference: https://containers.dev/implementors/json_reference/
   "name": "Python",
-  "image": "ghcr.io/hfr1994/debian",
+  "image": "ghcr.io/hfr1994/debian:latest",
   "remoteUser": "vscode",
   "remoteEnv": {
      "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
@@ -14,5 +14,3 @@
     }
   }
 }
-
-

@@ -1,4 +1,4 @@
-ARG VARIANT=trixie
+ARG VARIANT=bullseye
 FROM mcr.microsoft.com/devcontainers/base:${VARIANT}
 
 ARG TYPST=0.15.1
@@ -14,6 +14,7 @@ RUN apt-get update && \
         tar \
         zip \
         openssl \
+        fonts-cm-unicode \
         ca-certificates \
         openssh-client \
         git \
@@ -27,6 +28,7 @@ RUN apt-get update && \
         gnupg \
         lsb-release && \ 
     # Clean up
+    fc-cache -f -v && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
