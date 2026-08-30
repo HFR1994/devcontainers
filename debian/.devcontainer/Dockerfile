@@ -15,6 +15,7 @@ RUN apt-get update && \
         zip \
         openssl \
         fonts-cmu \
+        fonts-lmodern \
         ca-certificates \
         openssh-client \
         git \
