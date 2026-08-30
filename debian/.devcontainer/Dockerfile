@@ -1,6 +1,10 @@
 ARG VARIANT=trixie
 FROM mcr.microsoft.com/devcontainers/base:${VARIANT}
 
+# Re-declare after FROM: an ARG declared before the first FROM is only in scope for
+# the FROM line, so it must be redeclared to be usable in RUN steps below.
+ARG VARIANT
+
 ARG TYPST=0.15.1
 ENV TYPST_VERSION=${TYPST}
 
