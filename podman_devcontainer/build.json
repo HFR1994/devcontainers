@@ -1,0 +1,6 @@
+{
+  "name": "podman_devcontainer",
+  "version": "1.0.0",
+  "type": "image",
+  "depends": []
+}

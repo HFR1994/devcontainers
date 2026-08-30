@@ -1,0 +1,6 @@
+{
+  "name": "chrome-mcp-server",
+  "version": "1.0.0",
+  "type": "image",
+  "depends": []
+}
