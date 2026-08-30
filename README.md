@@ -3,8 +3,12 @@
 Prebuilt, published devcontainer / workspace images — built so you don't have to wait for long built times, or contenerize ready to go environments.
 
 Every push to `main` builds whatever image directories changed and publishes them to GHCR under
-[ghcr.io/hfr1994](https://github.com/HFR1994?tab=packages), tagged `latest`, an auto-incremented SemVer
-(`<folder>-x.y.z`), and the commit SHA.
+[ghcr.io/hfr1994](https://github.com/HFR1994?tab=packages), tagged `latest`. The build.json inside each folder decides the version and artifact name.
+
+> [!NOTE]
+> **Disclaimer:** This repo represents my personal standard and those not account for Industry standard. I have a personal preference for Typst rather than LATEX when creating documentation, so that why each repo is integrated with Typst. 
+>
+> As I continue to progress I will release a guide on how I have setted everything so things here make sense
 
 ## Images in this repo
 
@@ -13,6 +17,8 @@ Every push to `main` builds whatever image directories changed and publishes the
 | [amzn-linux](amzn-linux) | Amazon Linux 2023 devcontainer aimed to provision AWS Infrastructure with Terraform | `ghcr.io/hfr1994/amzn-linux` |
 | [podman_devcontainer](podman_devcontainer) | Rootless Podman-in-Podman image (DinD) to build/run devcontainers | `ghcr.io/hfr1994/podman_devcontainer` |
 | [chrome-mcp-server](podman_devcontainer) | Build based on Chrome Dev Tools MCP, just a container way of exposing the tool | `ghcr.io/hfr1994/chrome-mcp-server` |
+| [debian](debian) | Build based on devcontainers/debian:bullseye for legacy issues | `ghcr.io/hfr1994/debian` |
+| [python](python) | Based on the debian image with Python | `ghcr.io/hfr1994/python` |
 
 ## Using an image
 

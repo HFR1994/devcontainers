@@ -8,80 +8,42 @@ on:
       - ".claude/**"
 
 permissions:
-  contents: write
+  contents: read
   packages: write
 
 jobs:
   discover:
     runs-on: ubuntu-latest
     outputs:
-      image_dirs: ${{ steps.scan.outputs.image_dirs }}
-      devcontainer_dirs: ${{ steps.scan.outputs.devcontainer_dirs }}
+      build_matrix: ${{ steps.plan.outputs.build_matrix }}
+      has_builds: ${{ steps.plan.outputs.has_builds }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0 # Full history, so we can diff across every commit in the push
 
-      - id: scan
+      - name: Plan builds
+        id: plan
         env:
           BEFORE_SHA: ${{ github.event.before }}
           AFTER_SHA: ${{ github.event.after }}
-        run: |
-          # Diff over the whole push (all commits between before and after), not just the latest commit.
-          # Falls back to the full file list for a new branch (before is all-zeros) or a force-push
-          # that rewrote history we don't have (before isn't reachable).
-          if [[ "$BEFORE_SHA" =~ ^0*$ ]] || ! git cat-file -e "$BEFORE_SHA" 2>/dev/null; then
-            CHANGED_FILES=$(git ls-files)
-          else
-            CHANGED_FILES=$(git diff --name-only "$BEFORE_SHA" "$AFTER_SHA")
-          fi
+        run: python3 .github/scripts/plan_builds.py
 
-          image_dirs=()
-          devcontainer_dirs=()
-
-          for d in */; do
-            d="${d%/}"
-            [[ "$d" == .* ]] && continue
-
-            # Check if files inside this directory were modified
-            if echo "$CHANGED_FILES" | grep -q "^$d/"; then
-              if [[ -f "$d/.devcontainer/devcontainer.json" ]]; then
-                devcontainer_dirs+=("$d")
-              elif [[ -f "$d/Dockerfile" ]]; then
-                image_dirs+=("$d")
-              fi
-            fi
-          done
-
-          # Sort devcontainer_dirs so 'debian' is always first if present
-          if [[ " ${devcontainer_dirs[*]} " =~ " debian " ]]; then
-            sorted_dirs=("debian")
-            for d in $(printf '%s\n' "${devcontainer_dirs[@]}" | sort); do
-              [[ "$d" != "debian" ]] && sorted_dirs+=("$d")
-            done
-            devcontainer_dirs=("${sorted_dirs[@]}")
-          fi
-
-          # Format arrays as JSON
-          image_json=$(printf '%s\n' "${image_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
-          devcontainer_json=$(printf '%s\n' "${devcontainer_dirs[@]}" | jq -R . | jq -sc 'map(select(length > 0))')
-
-          echo "image_dirs=$image_json" >> "$GITHUB_OUTPUT"
-          echo "devcontainer_dirs=$devcontainer_json" >> "$GITHUB_OUTPUT"
-          echo "Image repos to build: $image_json"
-          echo "Devcontainer repos to build: $devcontainer_json"
-
-  build-images:
+  build:
     needs: discover
-    if: needs.discover.outputs.image_dirs != '[]' && needs.discover.outputs.image_dirs != ''
+    if: needs.discover.outputs.has_builds == 'true'
     runs-on: ubuntu-latest
     strategy:
+      fail-fast: false
+      # Serialize so dependencies (e.g. debian before python) publish before their dependents build.
+      # `build_matrix` is already topologically sorted by the planner.
+      max-parallel: 1
       matrix:
-        folder: ${{ fromJson(needs.discover.outputs.image_dirs) }}
+        include: ${{ fromJson(needs.discover.outputs.build_matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0 # Required for autotagger to read git history
+          fetch-depth: 0
 
       - uses: docker/setup-buildx-action@v3
 
@@ -91,37 +53,28 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Lowercase image repo
+      - name: Resolve image name
         run: |
           OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
-          echo "IMAGE_REPO=ghcr.io/${OWNER}/${{ matrix.folder }}" >> $GITHUB_ENV
+          echo "IMAGE_NAME=ghcr.io/${OWNER}/${{ matrix.name }}" >> "$GITHUB_ENV"
 
-      # Auto-increment SemVer tag (e.g., amzn-linux-0.0.1)
-      - name: Bump version and push tag
-        id: tagger
-        uses: anothrNick/github-tag-action@1.71.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: false
-          DEFAULT_BUMP: patch
-          INITIAL_VERSION: 0.0.1
-          TAG_PREFIX: "${{ matrix.folder }}-" # Prevents matrix tag collisions
+      # Dump secret to a runner file (creates an empty file if secret is unpopulated)
+      - name: Prepare CA secret file
+        run: echo "${{ secrets.CUSTOM_CA_PEM }}" > /tmp/ca_secret.pem
 
+      # ---- plain Docker image (Dockerfile at folder root) ----
       - id: meta
+        if: matrix.type == 'image'
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.IMAGE_REPO }}
+          images: ${{ env.IMAGE_NAME }}
           tags: |
             type=raw,value=latest
-            type=raw,value=${{ steps.tagger.outputs.new_tag }}
-            type=sha
-      
-      # Dump secret to a runner file (creates an empty file if secret is unpopulated)
-      - name: Prepare CA Secret File
-        run: |
-          echo "${{ secrets.CUSTOM_CA_PEM }}" > /tmp/ca_secret.pem
+            type=raw,value=${{ matrix.version }}
 
-      - uses: docker/build-push-action@v6
+      - name: Build and push image
+        if: matrix.type == 'image'
+        uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.folder }}
           push: true
@@ -132,49 +85,12 @@ jobs:
           cache-from: type=gha,scope=${{ matrix.folder }}
           cache-to: type=gha,mode=max,scope=${{ matrix.folder }}
 
-  build-devcontainers:
-    needs: [discover, build-images]
-    if: always() && needs.discover.outputs.devcontainer_dirs != '[]' && needs.discover.outputs.devcontainer_dirs != '' && !failure() && !cancelled()
-    runs-on: ubuntu-latest
-    strategy:
-      max-parallel: 1
-      matrix:
-        folder: ${{ fromJson(needs.discover.outputs.devcontainer_dirs) }}
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0 # Required for autotagger to read git history
-
-      - uses: docker/login-action@v3
-        with:
-          registry: ghcr.io
-          username: ${{ github.actor }}
-          password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Lowercase image name
-        run: |
-          IMAGE_NAME="ghcr.io/${{ github.repository_owner }}/${{ matrix.folder }}"
-          echo "IMAGE_NAME=${IMAGE_NAME,,}" >> $GITHUB_ENV
-
-      # Auto-increment SemVer tag (e.g., amzn-linux-0.0.1)
-      - name: Bump version and push tag
-        id: tagger
-        uses: anothrNick/github-tag-action@1.71.0
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-          WITH_V: false
-          DEFAULT_BUMP: patch
-          INITIAL_VERSION: 0.0.1
-          TAG_PREFIX: "${{ matrix.folder }}-" # Prevents matrix tag collisions
-
-      - name: Prepare CA Secret File
-        run: |
-          echo "${{ secrets.CUSTOM_CA_PEM }}" > /tmp/ca_secret.pem
-
-      - name: Build and push devcontainer image
+      # ---- devcontainer (Dockerfile/image under .devcontainer) ----
+      - name: Build and push devcontainer
+        if: matrix.type == 'devcontainer'
         uses: devcontainers/ci@v0.3
         with:
           subFolder: ${{ matrix.folder }}
           imageName: ${{ env.IMAGE_NAME }}
-          imageTag: ${{ steps.tagger.outputs.new_tag }},latest
+          imageTag: ${{ matrix.version }},latest
           push: always
