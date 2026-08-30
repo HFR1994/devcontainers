@@ -35,6 +35,8 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
+      # Serialize so dependencies (e.g. debian before python) build first
+      max-parallel: 1
       matrix:
         include: ${{ fromJson(needs.discover.outputs.build_matrix) }}
     steps:
