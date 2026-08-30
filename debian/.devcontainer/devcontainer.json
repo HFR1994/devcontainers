@@ -3,6 +3,9 @@
   "name": "Debian 12 Dev Container",
   "build": {
     "dockerfile": "./Dockerfile",
+    "args": {
+      "VARIANT": "${localEnv:VARIANT:trixie}"
+    },
     "options": [
       "--secret", "id=MY_CA,src=/tmp/ca_secret.pem"
     ]

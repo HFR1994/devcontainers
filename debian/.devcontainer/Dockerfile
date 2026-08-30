@@ -1,4 +1,4 @@
-ARG VARIANT=bullseye
+ARG VARIANT=trixie
 FROM mcr.microsoft.com/devcontainers/base:${VARIANT}
 
 ARG TYPST=0.15.1
@@ -33,7 +33,7 @@ RUN apt-get update && \
 COPY extras/fonts/ /usr/local/share/fonts/cm-bakoma/
 
 # Enable contrib repo (for fonts only - shows at duplicated)
-RUN echo "deb http://deb.debian.org/debian trixie main contrib" > /etc/apt/sources.list.d/contrib.list \
+RUN echo "deb http://deb.debian.org/debian ${VARIANT} main contrib" > /etc/apt/sources.list.d/contrib.list \
     && apt-get update \
     && apt-get install --no-install-recommends -y fonts-ibm-plex \
     && rm /etc/apt/sources.list.d/contrib.list \

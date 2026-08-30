@@ -17,8 +17,8 @@ Every push to `main` builds whatever image directories changed and publishes the
 | [amzn-linux](amzn-linux) | Amazon Linux 2023 devcontainer aimed to provision AWS Infrastructure with Terraform | `ghcr.io/hfr1994/amzn-linux` |
 | [podman_devcontainer](podman_devcontainer) | Rootless Podman-in-Podman image (DinD) to build/run devcontainers | `ghcr.io/hfr1994/podman_devcontainer` |
 | [chrome-mcp-server](podman_devcontainer) | Build based on Chrome Dev Tools MCP, just a container way of exposing the tool | `ghcr.io/hfr1994/chrome-mcp-server` |
-| [debian](debian) | Build based on devcontainers/debian:bullseye for legacy issues | `ghcr.io/hfr1994/debian` |
-| [python](python) | Based on the debian image with Python | `ghcr.io/hfr1994/python` |
+| [debian](debian) | Build images with flavors (trixie, bullseye) | `ghcr.io/hfr1994/debian` |
+| [python](python) | Based on the debian images with Python | `ghcr.io/hfr1994/python` |
 
 ## Using an image
 

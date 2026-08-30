@@ -15,8 +15,10 @@ jobs:
   discover:
     runs-on: ubuntu-latest
     outputs:
-      build_matrix: ${{ steps.plan.outputs.build_matrix }}
-      has_builds: ${{ steps.plan.outputs.has_builds }}
+      image_matrix: ${{ steps.plan.outputs.image_matrix }}
+      devcontainer_matrix: ${{ steps.plan.outputs.devcontainer_matrix }}
+      has_images: ${{ steps.plan.outputs.has_images }}
+      has_devcontainers: ${{ steps.plan.outputs.has_devcontainers }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -29,16 +31,16 @@ jobs:
           AFTER_SHA: ${{ github.event.after }}
         run: python3 .github/scripts/plan_builds.py
 
-  build:
+  build-images:
     needs: discover
-    if: needs.discover.outputs.has_builds == 'true'
+    if: needs.discover.outputs.has_images == 'true'
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # Serialize so dependencies (e.g. debian before python) build first
+      # Serialize so dependencies build before their dependents (matrix is topologically sorted).
       max-parallel: 1
       matrix:
-        include: ${{ fromJson(needs.discover.outputs.build_matrix) }}
+        include: ${{ fromJson(needs.discover.outputs.image_matrix) }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -61,35 +63,67 @@ jobs:
       - name: Prepare CA secret file
         run: echo "${{ secrets.CUSTOM_CA_PEM }}" > /tmp/ca_secret.pem
 
-      # ---- plain Docker image (Dockerfile at folder root) ----
-      - id: meta
-        if: matrix.type == 'image'
-        uses: docker/metadata-action@v5
-        with:
-          images: ${{ env.IMAGE_NAME }}
-          tags: |
-            type=raw,value=latest
-            type=raw,value=${{ matrix.version }}
+      # Expand the planner's comma-separated bare tags into fully-qualified refs.
+      - name: Compute image tags
+        run: |
+          {
+            echo "DOCKER_TAGS<<EOF"
+            IFS=',' read -ra TAGS <<< "${{ matrix.tags }}"
+            for t in "${TAGS[@]}"; do echo "${IMAGE_NAME}:${t}"; done
+            echo "EOF"
+          } >> "$GITHUB_ENV"
 
       - name: Build and push image
-        if: matrix.type == 'image'
         uses: docker/build-push-action@v6
         with:
           context: ${{ matrix.folder }}
           push: true
-          tags: ${{ steps.meta.outputs.tags }}
-          labels: ${{ steps.meta.outputs.labels }}
+          tags: ${{ env.DOCKER_TAGS }}
+          build-args: ${{ matrix.build_args }}
           secret-files: |
             MY_CA=/tmp/ca_secret.pem
-          cache-from: type=gha,scope=${{ matrix.folder }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.folder }}
+          cache-from: type=gha,scope=${{ matrix.id }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.id }}
 
-      # ---- devcontainer (Dockerfile/image under .devcontainer) ----
+  build-devcontainers:
+    # Runs after images so a devcontainer can pull a freshly-built plain image.
+    needs: [discover, build-images]
+    if: always() && needs.discover.outputs.has_devcontainers == 'true' && !failure() && !cancelled()
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      # Serialize so dependencies (e.g. debian before python) build first (matrix is topologically sorted).
+      max-parallel: 1
+      matrix:
+        include: ${{ fromJson(needs.discover.outputs.devcontainer_matrix) }}
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Resolve image name
+        run: |
+          OWNER=$(echo "${{ github.repository_owner }}" | tr '[:upper:]' '[:lower:]')
+          echo "IMAGE_NAME=ghcr.io/${OWNER}/${{ matrix.name }}" >> "$GITHUB_ENV"
+
+      # Dump secret to a runner file (creates an empty file if secret is unpopulated)
+      - name: Prepare CA secret file
+        run: echo "${{ secrets.CUSTOM_CA_PEM }}" > /tmp/ca_secret.pem
+
+      # Expose per-variant build args as env vars so devcontainer.json ${localEnv:...} resolves them.
+      - name: Export build args
+        run: printf '%s\n' "${{ matrix.build_args }}" >> "$GITHUB_ENV"
+
       - name: Build and push devcontainer
-        if: matrix.type == 'devcontainer'
         uses: devcontainers/ci@v0.3
         with:
           subFolder: ${{ matrix.folder }}
           imageName: ${{ env.IMAGE_NAME }}
-          imageTag: ${{ matrix.version }},latest
+          imageTag: ${{ matrix.tags }}
           push: always

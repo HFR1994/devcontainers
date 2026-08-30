@@ -2,5 +2,9 @@
   "name": "python",
   "version": "1.0.0",
   "type": "devcontainer",
-  "depends": ["debian"]
+  "depends": ["debian"],
+  "variants": [
+    { "suffix": "bullseye", "args": { "VARIANT": "bullseye" } },
+    { "suffix": "trixie", "default": true, "args": { "VARIANT": "trixie" } }
+  ]
 }

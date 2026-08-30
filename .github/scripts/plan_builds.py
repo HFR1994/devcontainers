@@ -45,17 +45,48 @@ def changed_files() -> list[str]:
     return [line for line in out.splitlines() if line]
 
 
+def normalize_variants(data: dict) -> list[dict]:
+    """Return the list of variants for a manifest.
+
+    A manifest without `variants` builds a single default image. When variants
+    are declared but none is flagged `default`, the first one becomes default
+    (it owns the plain `latest` / `<version>` tags).
+    """
+    variants = data.get("variants")
+    if not variants:
+        return [{"suffix": "", "args": {}, "default": True}]
+
+    normalized = [
+        {
+            "suffix": str(v.get("suffix", "")),
+            "args": dict(v.get("args", {})),
+            "default": bool(v.get("default", False)),
+        }
+        for v in variants
+    ]
+    if not any(v["default"] for v in normalized):
+        normalized[0]["default"] = True
+    return normalized
+
+
 def load_manifests() -> dict[str, dict]:
     images: dict[str, dict] = {}
     for manifest in sorted(Path(".").glob("*/build.json")):
         folder = manifest.parent.name
         data = json.loads(manifest.read_text())
+        variants = normalize_variants(data)
+        version = str(data["version"]) if "version" in data else ""
+        # `version` supplies the pinned tag; it's only needed when there are no named
+        # variants (a lone default with an empty suffix would otherwise have no tag).
+        if not version and any(not v["suffix"] for v in variants):
+            raise SystemExit(f"::error::{folder}/build.json needs a \"version\" (no variants declared)")
         images[folder] = {
             "folder": folder,
             "name": data.get("name", folder),
-            "version": str(data["version"]),
+            "version": version,
             "type": data.get("type", "image"),
             "depends": list(data.get("depends", [])),
+            "variants": variants,
         }
     return images
 
@@ -112,25 +143,51 @@ def main() -> None:
         print(f"::error::Dependency cycle detected among: {', '.join(cyclic)}", file=sys.stderr)
         sys.exit(1)
 
-    matrix = [
-        {
-            "folder": images[f]["folder"],
-            "name": images[f]["name"],
-            "version": images[f]["version"],
-            "type": images[f]["type"],
-        }
-        for f in order
-    ]
+    def tags_for(version: str, variant: dict) -> list[str]:
+        suffix = variant["suffix"]
+        if suffix:
+            # Named variant: rolling suffix tag only (no version number).
+            # The default variant additionally owns `latest`.
+            return [suffix, "latest"] if variant["default"] else [suffix]
+        # No variants declared: keep the version-pinned tag plus `latest`.
+        return [version, "latest"]
+
+    def entries(folder: str) -> list[dict]:
+        meta = images[folder]
+        out = []
+        for variant in meta["variants"]:
+            suffix = variant["suffix"]
+            out.append({
+                "folder": meta["folder"],
+                "name": meta["name"],
+                "version": meta["version"],
+                "type": meta["type"],
+                "suffix": suffix,
+                # Unique per variant: used for job titles and cache scoping.
+                "id": f"{meta['folder']}-{suffix}" if suffix else meta["folder"],
+                # Newline-delimited KEY=VALUE for docker build-args / env export.
+                "build_args": "\n".join(f"{k}={v}" for k, v in variant["args"].items()),
+                # Comma-delimited bare tags (used directly as devcontainers/ci imageTag).
+                "tags": ",".join(tags_for(meta["version"], variant)),
+            })
+        return out
+
+    # Global topological order, then partitioned by type. Each folder fans out into
+    # one entry per variant; variants of a folder stay contiguous and ahead of dependents.
+    image_matrix = [e for f in order if images[f]["type"] == "image" for e in entries(f)]
+    devcontainer_matrix = [e for f in order if images[f]["type"] == "devcontainer" for e in entries(f)]
 
     output_path = os.environ.get("GITHUB_OUTPUT", "/dev/stdout")
     with open(output_path, "a") as fh:
-        fh.write("build_matrix=" + json.dumps(matrix, separators=(",", ":")) + "\n")
-        fh.write("has_builds=" + ("true" if matrix else "false") + "\n")
+        fh.write("image_matrix=" + json.dumps(image_matrix, separators=(",", ":")) + "\n")
+        fh.write("devcontainer_matrix=" + json.dumps(devcontainer_matrix, separators=(",", ":")) + "\n")
+        fh.write("has_images=" + ("true" if image_matrix else "false") + "\n")
+        fh.write("has_devcontainers=" + ("true" if devcontainer_matrix else "false") + "\n")
 
     print("Directly changed:", ", ".join(sorted(directly_changed)) or "(none)")
     print("Build plan (in dependency order):")
-    for m in matrix:
-        print(f"  - {m['folder']} ({m['type']}) -> {m['name']}:{m['version']}")
+    for m in (image_matrix + devcontainer_matrix):
+        print(f"  - {m['id']} ({m['type']}) -> {m['name']}:[{m['tags']}]")
 
 
 if __name__ == "__main__":

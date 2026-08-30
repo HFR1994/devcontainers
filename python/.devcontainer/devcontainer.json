@@ -1,7 +1,12 @@
 {
   // For quick reference: https://containers.dev/implementors/json_reference/
   "name": "Python",
-  "image": "ghcr.io/hfr1994/debian:latest",
+  "build": {
+    "dockerfile": "./Dockerfile",
+    "args": {
+      "VARIANT": "${localEnv:VARIANT:trixie}"
+    }
+  },
   "remoteUser": "vscode",
   "remoteEnv": {
      "LOCAL_WORKSPACE_FOLDER": "${localWorkspaceFolder}"
@@ -10,6 +15,7 @@
     // Python with uv, Ruff, Mypy, MonkeyType and Bandit, installed using pipx
     "ghcr.io/devcontainers/features/python:1": {
       "installTools": "true",
+      "version": "3.14",
       "toolsToInstall": "uv,ruff,mypy,MonkeyType,bandit"
     }
   }

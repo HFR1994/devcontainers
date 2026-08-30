@@ -1,6 +1,9 @@
 {
   "name": "debian",
-  "version": "1.0.0",
   "type": "devcontainer",
-  "depends": []
+  "depends": [],
+  "variants": [
+    { "suffix": "bullseye", "args": { "VARIANT": "bullseye" } },
+    { "suffix": "trixie", "default": true, "args": { "VARIANT": "trixie" } }
+  ]
 }
