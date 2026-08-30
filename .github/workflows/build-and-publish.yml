@@ -35,9 +35,6 @@ jobs:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
-      # Serialize so dependencies (e.g. debian before python) publish before their dependents build.
-      # `build_matrix` is already topologically sorted by the planner.
-      max-parallel: 1
       matrix:
         include: ${{ fromJson(needs.discover.outputs.build_matrix) }}
     steps:

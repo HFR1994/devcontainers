@@ -33,9 +33,9 @@ RUN apt-get update && \
 COPY extras/fonts/ /usr/local/share/fonts/cm-bakoma/
 
 # Update font cache and verify that the required fonts are available
-RUN fc-cache -f -v && \
-    && typst fonts | grep -qE '^cmr10$'     || (echo "BaKoMa CM missing" && exit 1) \
-    && typst fonts | grep -qE '^CMU Serif$' || (echo "CMU fallback missing" && exit 1)
+RUN fc-cache -f -v &&  \
+    typst fonts | grep -qE '^cmr10$'     || (echo "BaKoMa CM missing" && exit 1) && \
+    typst fonts | grep -qE '^CMU Serif$' || (echo "CMU fallback missing" && exit 1)
 
 # Enable contrib repo (for fonts only - shows at duplicated)
 RUN echo "deb http://deb.debian.org/debian trixie main contrib" > /etc/apt/sources.list.d/contrib.list \
