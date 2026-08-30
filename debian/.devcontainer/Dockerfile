@@ -6,7 +6,6 @@ ENV TYPST_VERSION=${TYPST}
 
 # Create the user
 RUN apt-get update && \
-    apt-get upgrade -y && \
     DEBIAN_FRONTEND=noninteractive apt-get install -y --no-install-recommends \
         sudo \
         libsecret-1-0 \
@@ -27,8 +26,7 @@ RUN apt-get update && \
         xfonts-utils \
         fontconfig \
         gnupg \
-        lsb-release && \ 
-    # Clean up
+        lsb-release && \
     fc-cache -f -v && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
