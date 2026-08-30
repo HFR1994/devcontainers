@@ -18,8 +18,12 @@ Every push to `main` builds whatever image directories changed and publishes the
 | [podman_devcontainer](podman_devcontainer) | Rootless Podman-in-Podman image (DinD) to build/run devcontainers | `ghcr.io/hfr1994/podman_devcontainer` |
 | [chrome-mcp-server](podman_devcontainer) | Build based on Chrome Dev Tools MCP, just a container way of exposing the tool | `ghcr.io/hfr1994/chrome-mcp-server` |
 | [debian](debian) | Build based on devcontainers/debian:bullseye for legacy issues | `ghcr.io/hfr1994/debian` |
+<<<<<<< HEAD
 | [python](python) | Based on the debian image with Python | `ghcr.io/hfr1994/python` |
 
+=======
+| [python](python) | Based on the debian image with Python | `ghcr.io/hfr1994/debian` |
+>>>>>>> 9230562c321fd83c2433c6dec7d5ec0b740c4506
 ## Using an image
 
 All images are build using Github Actions. This images are meant to be used on local secure environments so you can add your own CA Certs shipped into the images (optional).
