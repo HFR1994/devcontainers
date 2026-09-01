@@ -11,8 +11,8 @@ ENV TYPST_VERSION=${TYPST}
 ENV DEBIAN_FRONTEND=noninteractive
 
 # Create the user
-RUN apt-get update && \
-    apt-get update -o Acquire::Retries=5 -o Acquire::ForceIPv4=true \
+RUN apt-get update -o Acquire::Retries=5 -o Acquire::ForceIPv4=true && \
+    apt-get install -y --no-install-recommends -o Acquire::Retries=5 -o Acquire::ForceIPv4=true \
         sudo \
         libsecret-1-0 \
         build-essential \
@@ -34,7 +34,7 @@ RUN apt-get update && \
         gnupg \
         lsb-release && \
     curl -s https://packagecloud.io/install/repositories/github/git-lfs/script.deb.sh | bash && \
-    apt-get update -o Acquire::Retries=5 -o Acquire::ForceIPv4=true git-lfs && \
+    apt-get install -y --no-install-recommends -o Acquire::Retries=5 -o Acquire::ForceIPv4=true git-lfs && \
     apt-get clean && \
     rm -rf /var/lib/apt/lists/*
 
