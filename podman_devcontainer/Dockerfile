@@ -50,6 +50,3 @@ WORKDIR /home/${USERNAME}
 
 ENTRYPOINT ["/usr/local/bin/entrypoint.sh"]
 CMD ["bash"]
-
-
-
